@@ -1,46 +1,65 @@
 import sqlite3
+from pathlib import Path
 
-conn = sqlite3.connect("db/market_app.db")
+BASE_DIR = Path(__file__).resolve().parents[1]
+DB_PATH = BASE_DIR / "db" / "market_app.db"
+
+conn = sqlite3.connect(DB_PATH)
 cursor = conn.cursor()
 
+# Create Sectors table
 cursor.execute("""
 CREATE TABLE Sectors (
-    name TEXT PRIMARY KEY,
-    api_endpoint TEXT CHECK(api_endpoint IN (
+    id TEXT PRIMARY KEY,
+    name TEXT UNIQUE NOT NULL CHECK(name IN (
         'technology', 'finance_service', 'communication_service', 'healthcare',
-        'industrual', 'consumer_defense', 'energy', 'materials', 'real_estate', 'utilities'
-    ))
+        'industrial', 'consumer_defense', 'energy', 'materials', 'real_estate', 'utilities'
+    )),
+    api_endpoint TEXT,
+    created_at DATETIME NOT NULL
 );
 """)
 
+# Create Tickers table
 cursor.execute("""
 CREATE TABLE Tickers (
-    symbol TEXT PRIMARY KEY,
+    id TEXT PRIMARY KEY,
+    symbol TEXT UNIQUE NOT NULL,
     name TEXT,
     type TEXT,
-    sectors TEXT,
-    added_at DATETIME,
+    sector_id TEXT,
     api_endpoint TEXT,
-    FOREIGN KEY(sectors) REFERENCES Sectors(name)
+    is_owned BOOLEAN NOT NULL DEFAULT 0,
+    notes TEXT,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
+    FOREIGN KEY(sector_id) REFERENCES Sectors(id)
 );
 """)
 
+# Create Signals table
 cursor.execute("""
 CREATE TABLE Signals (
-    ticker_symbol TEXT PRIMARY KEY,
-    signal_type TEXT CHECK(signal_type IN ('buy', 'sell', 'hold')),
-    confidence REAL,
-    FOREIGN KEY(ticker_symbol) REFERENCES Tickers(symbol)
+    id TEXT PRIMARY KEY,
+    ticker_id TEXT NOT NULL,
+    signal_type TEXT NOT NULL CHECK(signal_type IN ('buy', 'sell', 'hold')),
+    created_at DATETIME NOT NULL,
+    expired_at DATETIME,
+    confidence REAL NOT NULL CHECK(confidence >= 0 AND confidence <= 1),
+    FOREIGN KEY(ticker_id) REFERENCES Tickers(id)
 );
 """)
 
+# Create Forecasts table
 cursor.execute("""
 CREATE TABLE Forecasts (
-    symbol TEXT PRIMARY KEY,
+    id TEXT PRIMARY KEY,
+    ticker_id TEXT NOT NULL,
     model_version TEXT,
-    generated_at DATETIME,
-    file_path TEXT,
-    FOREIGN KEY(symbol) REFERENCES Tickers(symbol)
+    storage_uri TEXT,
+    created_at DATETIME NOT NULL,
+    updated_at DATETIME NOT NULL,
+    FOREIGN KEY(ticker_id) REFERENCES Tickers(id)
 );
 """)
 

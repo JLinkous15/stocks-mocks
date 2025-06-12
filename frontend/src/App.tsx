@@ -1,4 +1,4 @@
-import { Views } from "./Views/Views";
+import { Views } from "./views/Views";
 
 export function App() {
   return (
